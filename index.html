@@ -582,53 +582,105 @@ function loadImg(src){
   });
 }
 
+// ── FONT PRELOAD ─────────────────────────────────────────────────────────
+let _fontsReady=false;
+async function ensureFonts(){
+  if(_fontsReady)return;
+  try{
+    await Promise.all([
+      document.fonts.load('58px "DM Serif Display"'),
+      document.fonts.load('italic 58px "DM Serif Display"'),
+      document.fonts.load('600 21px "Raleway"'),
+      document.fonts.load('400 23px "Raleway"'),
+    ]);
+  }catch(e){console.warn('Font preload:',e);}
+  _fontsReady=true;
+}
+
+// ── WORD WRAP ─────────────────────────────────────────────────────────────
+function wrapText(ctx,text,maxWidth){
+  const paragraphs=text.split('\n');
+  const out=[];
+  paragraphs.forEach(function(para){
+    if(!para){out.push('');return;}
+    const words=para.split(' ');
+    let line='';
+    words.forEach(function(word){
+      const test=line?line+' '+word:word;
+      if(line&&ctx.measureText(test).width>maxWidth){out.push(line);line=word;}
+      else{line=test;}
+    });
+    if(line)out.push(line);
+  });
+  return out;
+}
+
 async function drawSlide(s,num){
+  await ensureFonts();
   const cv=document.getElementById('cv'),W=1080,H=1080,P=86;
   cv.width=W;cv.height=H;
   const ctx=cv.getContext('2d');
   ctx.fillStyle='#f7f0ec';ctx.fillRect(0,0,W,H);
   const hasChar=s.char&&s.char!=='none'&&POSES[s.char];
-  const textRightMargin=hasChar?W*0.36:P;
+  const textRightX=hasChar?W*0.64:W-P;
+  const textW=textRightX-P;
+
+  // Dot + Tag
   ctx.beginPath();ctx.arc(P,P+9,11,0,Math.PI*2);ctx.fillStyle='#c4806a';ctx.fill();
-  ctx.font='600 21px sans-serif';ctx.fillStyle='#c4806a';
+  ctx.font='600 21px "Raleway",sans-serif';ctx.fillStyle='#c4806a';
   ctx.fillText((s.tag||'EMETOPHOBIE').toUpperCase(),P+28,P+15);
-  // Number - top right (editorial layout)
-  ctx.font='italic 27px serif';ctx.fillStyle='rgba(196,160,144,0.7)';
+
+  // Number top right
+  ctx.font='italic 27px "DM Serif Display",serif';ctx.fillStyle='rgba(196,160,144,0.7)';
   const ntTop='No. '+String(num).padStart(2,'0');
   const nwTop=ctx.measureText(ntTop).width;
-  ctx.fillText(ntTop, W-P-nwTop, P+18);
-  const lines=(s.text||'').split('\n');
-  const fs=lines.some(function(l){return l.length>22;})?50:lines.length>5?48:58;
-  ctx.font=fs+'px serif';
-  let th=lines.length*fs*1.42, sy=(H-th)/2+fs*0.5;
+  ctx.fillText(ntTop,W-P-nwTop,P+18);
+
+  // Determine font size via wrapping
+  let fs=58;
+  ctx.font=fs+'px "DM Serif Display",serif';
+  let wrappedLines=wrapText(ctx,s.text||'',textW);
+  if(wrappedLines.length>11)fs=36;
+  else if(wrappedLines.length>8)fs=42;
+  else if(wrappedLines.length>5)fs=48;
+  ctx.font=fs+'px "DM Serif Display",serif';
+  wrappedLines=wrapText(ctx,s.text||'',textW); // re-wrap at final size
+
+  const lh=fs*1.42;
+  const th=wrappedLines.length*lh;
+  let sy=(H-th)/2+fs*0.5;
   const hl=(s.hlOn&&s.hl)?s.hl.toLowerCase():null;
-  lines.forEach(function(line){
+
+  wrappedLines.forEach(function(line){
     if(hl&&line.toLowerCase().includes(hl)){
       const idx=line.toLowerCase().indexOf(hl);
       const bef=line.substring(0,idx);
       const word=line.substring(idx,idx+hl.length);
       const aft=line.substring(idx+hl.length);
-      const wb=ctx.measureText(bef).width, ww=ctx.measureText(word).width;
+      const wb=ctx.measureText(bef).width,ww=ctx.measureText(word).width;
       ctx.fillStyle='rgba(196,128,106,0.28)';
-      ctx.fillRect(P+wb-4, sy-fs*0.82, ww+8, fs*1.06);
+      ctx.fillRect(P+wb-4,sy-fs*0.82,ww+8,fs*1.06);
       ctx.fillStyle='#2a1e1a';
       ctx.fillText(bef,P,sy);ctx.fillText(word,P+wb,sy);ctx.fillText(aft,P+wb+ww,sy);
-    } else {
+    }else{
       ctx.fillStyle='#2a1e1a';
       ctx.fillText(line,P,sy);
     }
-    sy+=fs*1.42;
+    sy+=lh;
   });
+
   if(hasChar){
     try{
       const img=await loadImg(POSES[s.char]);
       const cw=W*0.30;
       const ch=cw*(img.height/img.width);
-      ctx.drawImage(img, W-cw-P*0.4, H-ch-P*0.4, cw, ch);
+      ctx.drawImage(img,W-cw-P*0.4,H-ch-P*0.4,cw,ch);
     }catch(e){console.warn('char export failed',e);}
   }
-  ctx.font='400 23px sans-serif';ctx.fillStyle='#c4a090';
-  ctx.fillText(HANDLE, P, H-P);
+
+  // Handle
+  ctx.font='400 23px "Raleway",sans-serif';ctx.fillStyle='#c4a090';
+  ctx.fillText(HANDLE,P,H-P);
 }
 
 function dlCanvas(fn){
