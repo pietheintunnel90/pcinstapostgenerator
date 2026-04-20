@@ -227,20 +227,28 @@ canvas{display:none;}
 
 /* ── DESKTOP ── */
 @media(min-width:681px){
-  .left,.right{display:flex !important;}
+  /* Fixed height chain: html → body → app → body → panels */
+  html{height:100vh;overflow:hidden;}
+  body{height:100vh;min-height:unset;overflow:hidden;}
+  .app{height:100vh;}
+  .body{overflow:hidden;height:100%;}
+
   .left{
     flex-direction:column;
-    overflow-y:auto;           /* slide list scrolls */
+    overflow-y:auto;
     -webkit-overflow-scrolling:touch;
+    height:100%;
+    display:flex !important;
   }
-  .right{flex-direction:column;}
+  .right{
+    flex-direction:column;
+    overflow-y:auto;
+    height:100%;
+    display:flex !important;
+  }
   .tabs{display:none !important;}
   .fab{display:none !important;}
-  body{overflow:hidden;}
   .toast{bottom:24px;}
-  /* Ensure body panels fill available height */
-  .body{overflow:hidden;}
-  .panel{height:100%;}
 }
 
 /* ── MOBILE (Nothing Phone 2a: 393px wide) ── */
