@@ -78,7 +78,7 @@ input,textarea,select{
   transition:border-color .2s;-webkit-appearance:none;appearance:none;
 }
 input:focus,textarea:focus,select:focus{border-color:rgba(196,128,106,0.6);}
-textarea{resize:none;height:100px;line-height:1.5;}
+textarea{resize:none;min-height:130px;max-height:220px;overflow-y:auto;line-height:1.55;}
 select option{background:#2a1e1a;font-size:15px;}
 
 /* ── TOGGLE ── */
@@ -132,9 +132,9 @@ select option{background:#2a1e1a;font-size:15px;}
 .ptop-left{display:flex;align-items:center;gap:8px;}
 .pdot{width:7px;height:7px;border-radius:50%;background:var(--acc);flex-shrink:0;}
 .ptag{font-family:'Raleway',sans-serif;font-size:clamp(7px,1.8vw,10px);font-weight:600;letter-spacing:3px;text-transform:uppercase;color:var(--acc);}
-.pbody{flex:1;display:flex;align-items:center;position:relative;z-index:2;transition:padding-right .2s;}
+.pbody{flex:1;display:flex;align-items:flex-start;padding-top:4%;position:relative;z-index:2;transition:padding-right .2s;min-height:0;overflow:visible;}
 .pbody.with-char{padding-right:32%;}
-.ptext{font-family:'DM Serif Display',serif;font-size:clamp(15px,4.2vw,24px);line-height:1.40;color:var(--rt);word-break:break-word;}
+.ptext{font-family:'DM Serif Display',serif;line-height:1.40;color:var(--rt);word-break:break-word;}
 .ptext .hl{background:linear-gradient(180deg,transparent 68%,var(--accl) 68%);}
 .pbot{display:flex;justify-content:flex-start;align-items:flex-end;position:relative;z-index:2;}
 .phandle{font-family:'Raleway',sans-serif;font-size:clamp(8px,2vw,10px);color:var(--mu);letter-spacing:1px;}
@@ -187,60 +187,125 @@ select option{background:#2a1e1a;font-size:15px;}
 .toast.show{opacity:1;transform:translateX(-50%) translateY(0);}
 
 .plbl{font-size:9px;letter-spacing:3px;text-transform:uppercase;color:var(--fgm);}
+/* ── FLOATING TOGGLE BUTTON (mobile only) ── */
+.fab{
+  display:none;
+  position:fixed;
+  bottom:calc(24px + var(--safe-b));
+  right:20px;
+  z-index:50;
+  background:var(--acc);
+  color:#fff;
+  border:none;
+  border-radius:28px;
+  padding:14px 22px;
+  font-family:'DM Sans',sans-serif;
+  font-size:14px;
+  font-weight:600;
+  letter-spacing:.5px;
+  cursor:pointer;
+  box-shadow:0 4px 20px rgba(196,128,106,0.5);
+  transition:all .2s;
+  min-height:52px;
+  align-items:center;
+  gap:8px;
+  white-space:nowrap;
+}
+.fab:active{transform:scale(.95);background:#b8705a;}
+.fab-icon{font-size:17px;}
+
+/* live dot – pulses when preview is up-to-date */
+.fab-dot{
+  width:7px;height:7px;border-radius:50%;
+  background:rgba(255,255,255,0.6);
+  flex-shrink:0;
+  transition:background .3s;
+}
+.fab-dot.live{background:#7fffb0;box-shadow:0 0 6px #7fffb0;}
+
 canvas{display:none;}
 
 /* ── DESKTOP ── */
 @media(min-width:681px){
   .left,.right{display:flex !important;}
-  .left{flex-direction:column;}
+  .left{
+    flex-direction:column;
+    overflow-y:auto;           /* slide list scrolls */
+    -webkit-overflow-scrolling:touch;
+  }
+  .right{flex-direction:column;}
   .tabs{display:none !important;}
+  .fab{display:none !important;}
   body{overflow:hidden;}
   .toast{bottom:24px;}
+  /* Ensure body panels fill available height */
+  .body{overflow:hidden;}
+  .panel{height:100%;}
 }
 
 /* ── MOBILE (Nothing Phone 2a: 393px wide) ── */
 @media(max-width:680px){
-  /* App uses full screen with tabs at bottom */
-  .app{height:100dvh;height:100vh;} /* dvh for dynamic viewport */
+  .app{height:100dvh;height:100vh;display:flex;flex-direction:column;}
+
+  /* body takes remaining space between header and FAB */
   .body{
     grid-template-columns:1fr;
     flex:1;
     min-height:0;
-    /* Height = full - header - tabs */
+    overflow:hidden;
+    position:relative;
   }
-  .tabs{display:flex;}
 
-  /* Panels fill available space, left scrolls freely */
+  /* Hide tab bar – we use FAB instead */
+  .tabs{display:none !important;}
+
+  /* Show FAB */
+  .fab{display:flex;}
+
+  /* Edit panel = default view, scrolls freely */
   .left{
-    display:none;
+    display:flex;
+    flex-direction:column;
     overflow-y:auto;
     -webkit-overflow-scrolling:touch;
-    /* When keyboard opens, allow scrolling */
+    overscroll-behavior:contain;
     height:100%;
-    padding-bottom:20px;
+    padding-bottom:100px; /* space above FAB + extra breathing room */
   }
-  .right{
-    display:none;
-    overflow-y:auto;
-    -webkit-overflow-scrolling:touch;
-    height:100%;
-    padding:16px;
-    gap:12px;
-  }
-  .left.show,.right.show{display:flex;flex-direction:column;}
 
-  /* Preview fits nicely on 393px screen */
+  /* Preview panel = hidden by default, slides in from right */
+  .right{
+    display:flex;
+    flex-direction:column;
+    overflow-y:auto;
+    -webkit-overflow-scrolling:touch;
+    overscroll-behavior:contain;
+    height:100%;
+    padding:16px 16px 84px;
+    gap:12px;
+    position:absolute;
+    inset:0;
+    background:var(--bg);
+    transform:translateX(100%);
+    transition:transform .3s cubic-bezier(.25,.46,.45,.94);
+  }
+
+  /* When preview is active, slide in */
+  .right.show{
+    transform:translateX(0);
+  }
+  /* Edit panel pushed left when preview visible */
+  .left.hidden{
+    pointer-events:none;
+    visibility:hidden;
+  }
+
+  /* Preview card fills available width */
   .preview-wrap{max-width:calc(100vw - 32px);}
-  
-  /* Slightly more compact header on mobile */
-  .hdr{padding:10px 16px;}
-  .htitle{font-size:16px;}
-  
-  /* Export buttons full width on mobile */
   .exarea{max-width:calc(100vw - 32px);}
 
-  /* Slide list items bigger touch targets */
-  .si{min-height:56px;}
+  /* Toast above FAB */
+  .toast{bottom:calc(88px + var(--safe-b));}
 }
 </style>
 </head>
@@ -325,6 +390,13 @@ canvas{display:none;}
   </div>
 </div><!-- end .app -->
 
+<!-- Floating toggle button (mobile only) -->
+<button class="fab" id="fab" onclick="toggleView()">
+  <span class="fab-icon" id="fabIcon">👁</span>
+  <span id="fabLabel">Vorschau</span>
+  <span class="fab-dot live" id="fabDot"></span>
+</button>
+
 
 <div class="toast" id="toast"></div>
 <canvas id="cv"></canvas>
@@ -343,12 +415,51 @@ let slides = JSON.parse(localStorage.getItem('ig_s') || 'null') || [
 
 renderList(); loadEd(0); renderPrev();
 
+// ── VIEW TOGGLE ──────────────────────────────────────────────────────────────
+let inPreview = false;
+
+function toggleView(){
+  inPreview = !inPreview;
+  const left = document.getElementById('panelLeft');
+  const right = document.getElementById('panelRight');
+  const fabIcon = document.getElementById('fabIcon');
+  const fabLabel = document.getElementById('fabLabel');
+  const dot = document.getElementById('fabDot');
+
+  if(inPreview){
+    right.classList.add('show');
+    left.classList.add('hidden');
+    fabIcon.textContent = '✏️';
+    fabLabel.textContent = 'Bearbeiten';
+    dot.classList.remove('live');
+    // Mark preview as synced
+    dot.classList.add('live');
+  } else {
+    right.classList.remove('show');
+    left.classList.remove('hidden');
+    fabIcon.textContent = '👁';
+    fabLabel.textContent = 'Vorschau';
+    dot.classList.add('live');
+  }
+}
+
+// Keep old switchTab for desktop tabs (no-op on mobile)
 function switchTab(t){
   const e=t==='edit';
   document.getElementById('panelLeft').classList.toggle('show',e);
   document.getElementById('panelRight').classList.toggle('show',!e);
   document.getElementById('tabEdit').classList.toggle('active',e);
   document.getElementById('tabPrev').classList.toggle('active',!e);
+}
+
+// Mark dot as "stale" (needs preview update) when editing
+function markStale(){
+  const dot = document.getElementById('fabDot');
+  if(dot) dot.classList.remove('live');
+}
+function markLive(){
+  const dot = document.getElementById('fabDot');
+  if(dot) dot.classList.add('live');
 }
 function toggleHL(){hlOn=!hlOn;document.getElementById('hlTrack').classList.toggle('on',hlOn);slides[cur]=collect();renderPrev();}
 function persist(){localStorage.setItem('ig_s',JSON.stringify(slides));}
@@ -406,20 +517,51 @@ function renderPrev(){
   document.getElementById('pTag').textContent=s.tag||'Emetophobie';
   document.getElementById('pHandle').textContent=HANDLE;
   document.getElementById('pNum').textContent='No. '+String(cur+1).padStart(2,'0');
-  document.getElementById('pText').innerHTML=buildTextHTML(s.text||'',(s.hlOn&&s.hl)?s.hl:null);
+
+  const hlWord=(s.hlOn&&s.hl)?s.hl:null;
+  document.getElementById('pText').innerHTML=buildTextHTML(s.text||'',hlWord);
+
+  // ── Dynamic font size: mirror the canvas export logic ──────────────────
+  // Canvas is 1080px, preview card is measured at runtime
+  const card = document.getElementById('card');
+  const cardW = card ? card.offsetWidth : 390;
+  const scale = cardW / 1080;
+
+  const lines = (s.text||'').split('\n');
+  const hasChar = s.char && s.char !== 'none' && POSES[s.char];
+  // Same thresholds as drawSlide()
+  let canvasFontPx;
+  if(lines.some(function(l){return l.length > 22;})) canvasFontPx = 50;
+  else if(lines.length > 5) canvasFontPx = 48;
+  else canvasFontPx = 58;
+
+  // Extra reduction for very long texts (many lines)
+  if(lines.length > 8) canvasFontPx = 42;
+  if(lines.length > 11) canvasFontPx = 36;
+
+  const previewFontPx = Math.round(canvasFontPx * scale);
+  // Clamp: never smaller than 11px (unreadable) or bigger than 26px
+  const finalFontPx = Math.max(11, Math.min(26, previewFontPx));
+  document.getElementById('pText').style.fontSize = finalFontPx + 'px';
+  // ────────────────────────────────────────────────────────────────────────
+
   const slot=document.getElementById('charSlot');
   const body=document.getElementById('pBody');
-  if(s.char&&s.char!=='none'&&POSES[s.char]){
+  if(hasChar){
     slot.innerHTML='<div class="char-br"><img src="'+POSES[s.char]+'" alt=""></div>';
     body.classList.add('with-char');
   } else {
     slot.innerHTML='';
     body.classList.remove('with-char');
   }
+  markLive();
 }
 
 ['iTag','iText','iHl'].forEach(function(id){
-  document.getElementById(id).addEventListener('input',function(){slides[cur]=collect();renderPrev();});
+  document.getElementById(id).addEventListener('input',function(){
+    slides[cur]=collect();
+    renderPrev(); // live update on every keystroke
+  });
 });
 document.getElementById('iChar').addEventListener('change',function(){slides[cur]=collect();renderPrev();});
 
